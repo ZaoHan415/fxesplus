@@ -1,0 +1,482 @@
+<project name="OKI 8-bit family build script" basedir="." default="debug" xmlns:cpptasks="antlib:net.sf.antcontrib.cpptasks">
+
+    <property name="file.version.properties" value="${project}\version.properties" />
+    <property file="${file.version.properties}" />
+
+	<property file="${project}\project.properties" />
+
+	<!-- Custom Tasks -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml" />
+
+	<import file="../../common.xml"/>
+
+	<!-- System paths -->
+	<property name="path.bin" value="${basedir}" />
+	<property name="path.include" value="${path.bin}\inc" />
+	<property name="path.library" value="${path.bin}\lib\${model}" />
+
+	<!-- Recognized File Extensions -->
+	<property name="ext.assembly" value="asm" />
+	<property name="ext.object" value="obj" />
+	<property name="ext.print" value="prn" />
+	<property name="ext.absolute" value="abs" />
+	<property name="ext.binary" value="hex" />
+	<property name="ext.library" value="lib" />
+	<property name="ext.temp" value="tmp" />
+	<property name="ext.map" value="map" />
+	<property name="ext.error" value="ler" />
+	<property name="ext.callstacktree" value="ct" />
+
+	<!-- Special Files -->
+	<property name="compiler" value="ccu8.exe" />
+	<property name="assembler" value="Rasu8.exe" />
+	<property name="linker" value="Rlu8.exe" />
+	<property name="hexer" value="Ohu8.exe" />
+	<property name="librarian" value="Libu8.exe" />
+
+	<property name="compiler.options.machine" value="/T" />
+	<property name="compiler.options.include" value="/I" />
+	<property name="compiler.options.debug" value="/SD" />
+	<property name="compiler.options.misc" value="/Ol /Og /Oa /Ot /Wa /Ff /LE" />
+	<property name="assembler.options.debug" value="/SD" />
+	<property name="assembler.options" value="/G /CD /WRPEAST /L /NR /NPL /NPW /NE /O.\" />
+	<property name="linker.options.debug" value="/D /SD /S" />
+	<property name="linker.options" value="/CC" />
+
+	<property name="linker.error.suppress" value="Warning W012: DATA/BIT segments overlap" />
+
+	<!--
+	************************************************************************
+		Initialization Tasks
+	************************************************************************
+	-->
+
+	<target name="cleanup">
+
+		<!--Ensure that the bin directory is clean from any previous build-->
+		<echo message="Cleaning up to ensure that the build directories are clean from any previous build." />
+
+		<mkdir dir="${path.build}" />
+		<delete failonerror="false">
+			<fileset dir="${path.bin}" casesensitive="false">
+				<include name="*.${ext.absolute}" />
+				<include name="*.${ext.binary}" />
+				<include name="*.${ext.map}" />
+				<include name="*.${ext.header}" />
+				<include name="*.${ext.source}" />
+				<include name="*.${ext.assembly}" />
+				<include name="*.${ext.raw.assembly}" />
+				<include name="*.${ext.print}" />
+				<include name="*.${ext.object}" />
+				<include name="*.${ext.error}" />
+				<include name="*.${ext.callstacktree}" />
+			</fileset>
+			<fileset dir="${path.build}" casesensitive="false">
+				<include name="**/*.${ext.absolute}" />
+				<include name="**/*.${ext.binary}" />
+				<include name="**/*.${ext.map}" />
+				<include name="**/*.${ext.header}" />
+				<include name="**/*.${ext.source}" />
+				<include name="**/*.${ext.assembly}" />
+				<include name="**/*.${ext.raw.assembly}" />
+				<include name="**/*.${ext.print}" />
+				<include name="**/*.${ext.object}" />
+				<include name="*.${ext.error}" />
+				<include name="*.${ext.callstacktree}" />
+			</fileset>
+		</delete>
+
+		<delete includeemptydirs="true" failonerror="false">
+			<fileset dir="${path.build}" />
+			<fileset dir="${path.debug}" />
+			<fileset dir="${path.releases}\${dir.build}" />
+		</delete>
+
+		<echo message="Done!" />
+
+	</target>
+
+	<target name="cleanup-partial">
+
+		<!--Ensure that the bin directory is clean from any previous build-->
+		<echo message="Cleaning up to ensure that the build directories are clean from any previous build." />
+
+		<mkdir dir="${path.build}" />
+		<delete failonerror="false">
+			<fileset dir="${path.bin}" casesensitive="false">
+				<include name="*.${ext.absolute}" />
+				<include name="*.${ext.binary}" />
+				<include name="*.${ext.map}" />
+			</fileset>
+			<fileset dir="${path.build}" casesensitive="false">
+				<include name="**/*.${ext.absolute}" />
+				<include name="**/*.${ext.binary}" />
+				<include name="**/*.${ext.map}" />
+			</fileset>
+		</delete>
+
+	</target>
+
+	<!--
+	********************************************************************************
+		Module build tasks
+	********************************************************************************
+	-->
+	<target name="buildmodules" depends="preparefiles">
+
+		<echo message="${path.build}"/>
+
+		<for param="module">
+
+			<path>
+				<dirset dir="${path.build}" />
+			</path>
+
+			<sequential>
+
+				<var name="path.module" value="@{module}" />
+
+				<propertyregex override="yes" property="name.module" input="@{module}" regexp=".*\\([^\.]*)" replace="\1" />
+
+				<if>
+
+					<or>
+						<equals arg1="${build.module}" arg2="" />
+						<equals arg1="${build.module}" arg2="${name.module}" />
+					</or>
+					<then>
+						<echo message="Building ${name.module}..."/>
+						<antcall target="buildmodule" />
+					</then>
+				</if>
+
+			</sequential>
+		</for>
+
+	</target>
+
+	<target name="compile" depends="pre-compile">
+
+		<echo message="***Compiling***" />
+
+		<var name="compiler.options.arch" value="/MS /near" />
+
+		<if>
+			<equals arg1="${model}" arg2="large"/>
+			<then>
+				<var name="compiler.options.arch" value="/ML /far" />
+			</then>
+		</if>
+
+		<sequential>
+			<for param="file">
+
+				<path>
+					<fileset dir="${path.module}" includes="*.${ext.source}" />
+				</path>
+
+				<sequential>
+
+					<propertyregex override="yes" property="file.name" input="@{file}" regexp=".*\\([^\.]*)\.${ext.source}" replace="\1" />
+
+					<echo message=" " />
+					<echo message="Compiling ${file.name}.${ext.source}..." />
+					
+					<exec dir="${path.bin}" executable="${compiler}" resolveexecutable="false" vmlauncher="false">
+						<arg line="${compiler.options.machine} ${machine}" />
+						<arg line="${compiler.options.include} ${path.build}" />
+						<arg line="${compiler.options.include} ${path.build}\${machine.family}" />
+						<arg line="${compiler.options.include} ${path.include}" />
+						<arg line="${compiler.options.include} ${path.config}" />
+						<arg line="${compiler.options.include} ${path.bootstrap}\${dir.header}" />
+						<arg line="${compiler.options.include} ${dir.kernel}" />
+						<arg line="${compiler.options.include} ${dir.kernel}\inc" />
+						<arg line="${compiler.options.arch}" />
+						<arg line="${compiler.options.misc}" />
+						<arg line="${compiler.options.extra}" />
+						<arg line="@{file}" />
+					</exec>
+
+				</sequential>
+			</for>
+
+			<move todir="${path.module}">
+				<fileset dir="${path.bin}" casesensitive="false">
+					<include name="*.${ext.assembly}" />
+				</fileset>
+			</move>
+
+		</sequential>
+	</target>
+
+	<target name="assemble" depends="compile">
+
+		<echo level="info" message="***Assembling***" />
+
+		<var name="assembler.options.arch" value="/MS /DN" />
+
+		<if>
+			<equals arg1="${model}" arg2="large"/>
+			<then>
+				<var name="assembler.options.arch" value="/ML /DF" />
+			</then>
+		</if>
+
+		<sequential>
+
+			<for param="file">
+
+				<path>
+					<fileset dir="${path.module}" includes="*.${ext.assembly}" />
+				</path>
+
+				<sequential>
+
+					<propertyregex override="yes" property="file.name" input="@{file}" regexp=".*\\([^\\.]*)\.${ext.assembly}" replace="\1" />
+
+					<echo level="info" message=" " />
+					<echo message="Assembling ${file.name}.${ext.assembly}..." />
+
+					<exec dir="${path.bin}" executable="${assembler}" resolveexecutable="true" vmlauncher="false">
+						<arg line="/I${path.module}"/>
+						<arg line="/I${path.build}\${machine.family}"/>
+						<arg line="${assembler.options}" />
+						<arg line="${assembler.options.arch}" />
+						<arg line="${assembler.options.extra}" />
+						<arg line="/S @{file}" />
+					</exec>
+
+					<var name="filelist" value="${filelist}${file.name} " />
+
+				</sequential>
+			</for>
+
+		</sequential>
+		
+		<move todir="${path.build}">
+
+			<fileset dir="${path.bin}" casesensitive="false">
+				<include name="*.${ext.print}" />
+				<include name="${file.build}.*" />
+				<include name="*.${ext.object}" />
+				<include name="*.${ext.error}" />
+				<include name="*.${ext.callstacktree}" />
+			</fileset>
+
+		</move>
+	</target>
+
+	<!--
+	********************************************************************************
+	    Project build tasks
+	********************************************************************************
+	-->
+
+	<target name="link" depends="buildmodules">
+
+		<sequential>
+
+			<echo level="info" message="Generating object file list..." />
+
+			<pathconvert pathsep=" " property="files.obj1">
+				<fileset dir="${path.build}">
+    				<include name="*.${ext.object}"/>
+				</fileset>
+				<mapper type="flatten"/>
+			</pathconvert>
+			<pathconvert pathsep=" " property="files.obj2">
+				<fileset dir="${dir.kernel}">
+					<include name="*.${ext.object}"/>
+				</fileset>
+				<fileset dir="${dir.kernel}\obj">
+					<include name="*.${ext.object}"/>
+				</fileset>
+			</pathconvert>
+			<var name="filelist" value="${files.obj1} ${files.obj2}" />			
+			<echo message="${filelist}"/>
+				
+			<echo message="" />
+			<echo message="Scanning libraries..." />
+
+			<fileset id="fileset.lib" dir="${path.library}" includes="*.${ext.library}" casesensitive="false"/>
+			<pathconvert pathsep=" " property="liblist" refid="fileset.lib"/>
+			<echo message="${liblist}"/>
+
+			<echo message="" />
+			<echo message="Linking..." />
+
+			<exec dir="${path.build}" executable="${path.bin}\${linker}" outputproperty="error.output" resultproperty="error.linker" resolveexecutable="true" vmlauncher="false">
+				<arg line="${linker.options}" />
+				<arg line="${linker.options.extra}" />
+				<arg line="${filelist}," />
+				<arg line="${file.build},"/>
+				<arg line="${file.build}," />
+				<arg line="${liblist};" />
+			</exec>
+
+			<echo message="${error.output}"/>
+		</sequential>
+
+		<available file="${path.build}\${file.build}.${ext.absolute}" property="file.absolute.present" />
+		
+		<echo message="Finalizing build..." />
+
+		<if>
+			<equals arg1="${file.absolute.present}" arg2="true"/>
+			<then>
+				<exec dir="${path.build}" executable="${path.bin}\${hexer}" resolveexecutable="true" vmlauncher="false">
+					<arg line="${file.build}" />
+					<arg line="${file.build}" />
+				</exec>
+			</then>
+		</if>
+	</target>
+
+	<target name="housekeeping">
+
+		<echo level="info" message="Performing housekeeping..." />
+
+		<move todir="${path.build}">
+
+			<fileset dir="${path.bin}" casesensitive="false">
+				<include name="*.${ext.print}" />
+				<include name="*.${ext.object}" />
+				<include name="*.${ext.error}" />
+				<include name="*.${ext.callstacktree}" />
+			</fileset>
+
+		</move>
+
+		<echo level="info" message=" " />
+		<echo level="info" message="***Compiler Errors***" />
+
+		<for param="file">
+
+			<path>
+				<fileset dir="${path.build}" includes="*.${ext.error}" />
+			</path>
+
+			<sequential>
+
+				<propertyregex override="yes" property="file.name" input="@{file}" regexp=".*\\([^\\.]*)\.${ext.error}" replace="\1" />
+
+				<typedef name="filtererrors" classname="org.TechTracks.CErrorFilter" />
+
+				<var name="error.msgs" unset="true" />
+				<loadfile property="error.msgs" srcFile="${path.build}\${file.name}.${ext.error}">
+					<filterchain>
+						<tokenfilter>
+							<filetokenizer />
+							<filtererrors />
+						</tokenfilter>
+					</filterchain>
+				</loadfile>
+
+				<if>
+					<not>
+						<equals arg1="${error.msgs}" arg2="$${error.msgs}" />
+					</not>
+					<then>
+						<echo level="info" message="${file.name}.${ext.error}" />
+						<echo message="${error.msgs}" />
+						<property name="file.error.present" value="true" />
+					</then>
+				</if>
+
+			</sequential>
+		</for>
+
+		<if>
+			<equals arg1="${file.error.present}" arg2="$${file.error.present}" />
+			<then>
+				<echo level="info" message="---NONE---" />
+			</then>
+		</if>
+
+		<if>
+			<equals arg1="${kernel}" arg2="true"/>			
+			<then>
+				<var name="error.linker" value="0"/>
+			</then>
+			<else>
+				<echo level="info" message="******"/>
+		
+				<echo level="info" message=" "/>
+				<echo level="info" message="***Linker Errors***"/>
+
+					<typedef name="filterlinkererrors" classname="org.TechTracks.LinkerErrorFilter"/>
+				    	    			
+					<var name="error.msgs" unset="true"/>
+					<loadfile property="error.msgs" srcFile="${path.build}\${file.build}.${ext.map}">					
+						<filterchain>						
+							<tokenfilter>	
+								<filetokenizer/>
+								<filterlinkererrors/>
+							</tokenfilter>
+						</filterchain>		      					
+				    </loadfile>
+				
+				<propertyregex property="error.linker.msgs" input="${error.msgs}"
+				   regexp=".*(Warning W012: DATA/BIT segments overlap)[\s].*" replace=""
+					   casesensitive="true" defaultValue="${error.msgs}"/>
+
+				<if>
+					<or>
+						<equals arg1="${error.msgs}" arg2=""/>
+						<equals arg1="${error.msgs}" arg2="$${error.msgs}" />
+						<equals arg1="${error.msgs}" arg2="${linker.error.suppress}&#xA;"/>
+					</or>    		
+					<then>
+				    		<echo level="info" message="---NONE---"/>                    	
+
+						<echo level="info" message="******"/>
+		
+						<echo level="info" message=" "/>
+						<echo level="info" message="***Section sizes***"/>
+
+							<loadfile property="size.code" srcFile="${path.build}\${file.build}.${ext.map}">
+								<filterchain>
+									<filterreader classname="org.apache.tools.ant.filters.LineContains">
+									  <param type="contains" value="Total size "/>
+									</filterreader>
+								</filterchain>		      
+						    </loadfile>
+						    
+						<echo level="info" message="${size.code}"/>
+
+					</then>
+					<else>
+						<echo message="${error.linker.msgs}"/>
+					</else>
+				</if>
+			</else>
+		</if>
+	    	    
+	</target>
+
+	<target name="build" depends="housekeeping">
+
+		<if>
+			<equals arg1="${file.error.present}" arg2="true" />
+			<then>
+				<fail message="Compiler errors found!" />
+			</then>
+		</if>
+
+		<if>
+			<not>
+				<or>
+					<equals arg1="${error.msgs}" arg2=""/>
+					<equals arg1="${error.msgs}" arg2="$${error.msgs}" />
+					<equals arg1="${error.msgs}" arg2="${linker.error.suppress}&#xA;"/>
+				</or>
+			</not>
+			<then>
+				<fail message="Linker errors found!"/>
+			</then>    		
+		</if>
+
+	</target>
+
+</project>
+

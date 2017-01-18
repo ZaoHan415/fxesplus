@@ -1,0 +1,12 @@
+This is the repository for storing the files needed for the Casio fx-ES PLUS
+ reverse-engineering project.
+
+All copyrighted material included is for educational purposes only, and
+ was published in belief that its publication does not violate any rights
+ of its owners.
+
+Copyrighted material included:
+    dumps/*.bin - ROM extracted from the emulator
+    docs/nX-U8100 Core Instruction Manual.pdf - docin.com
+    tools/u8-sdk/* - https://github.com/zoogtech/build-tools
+
