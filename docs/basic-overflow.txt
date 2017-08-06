@@ -1,0 +1,19 @@
+The baidu page of fx-es(ms) group contains everything necessary to hack the calculator. Here I recall the steps to get to basic overflow:
+
+Here I show a specific method, that is found by fx-es(ms) group: (parentheses imply comment)
+
+<Reset All>
+
+[shift] [mode] [2] (LineIO)
+[alpha] [)] [alpha] [calc] [shift] [logab / log-box] [alpha] [)] [shift] [)] [1] [shift] [)] [1] [x10^] [9]
+(Enter "X = Sigma(X, 1, 1 x10 9")
+[calc] [=] [ac] (that is "AC" not "ON") [left]
+[del] [del] [del] [2] (replace the third parameter by 2)
+[calc] [=] [left]
+
+Phenomenon: (the translators often translate so that Baidu page contains that word, so I will use it)
+The cursor is at the first position, before first "X". If you press [1] now it should not display on the screen (behavior different from when the cursor is at first position).
+
+That is basic overflow.
+
+I don't think there is any problem understanding the translation of baidu page, given you have a calculator. Next time if you don't understand anything, please write down what you have tried according to that page, and what point does your calculator behave/display incorrectly.
