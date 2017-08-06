@@ -1,0 +1,48 @@
+--- How to enter a hackstring (translated to English) ---
+[991ES+ and 570ES+ only]
+
++ Hackstring always have 100 characters.
++ The basic memory layout of the RAM is
+ 
+[ --- Input part, 100 bytes ---][ --- Cache part, 100 bytes --- ][ --- Random seed, 8 bytes --- ][ --- Counter, 2 bytes ---]
+where:
+ 
+Input part: The part used to store the formula displaying on the screen.
+Cache part: "backlog" called by LBPHacker. To avoid confusion with the replay memory, that part is also used in STAT mode, and is cleared after pressing ON, even in 68 mode.
+Random seed: Change every time Ran# or RanInt# is called by some random number generator formula (which one I don't know)
+Counter: Increase by 1 every time the cursor flash, also called "unstable character". This will be useful later.
++ All hackstring takes exactly 100 bytes.
++ How to enter the hackstring:
+
+* Execute basic overflow. (see post #208) (post number may change if someone delete their post)
+
+By now the cursor is already to the right of a null character.
+
+* Enter 91 (any) bytes.
+
+After having entered 90 bytes screen should show something like
+ 
+◄8901234567890|
+
+               0
+and after entered 1 more byte screen should show
+ 
+◄9012345678901|X►
+
+               0
+(assuming you enter 12345678901234...)
+
+* Now you should enter 100 characters of the hackstring.
+* Then, to verify you entered the correct amount of character, enter 8 more bytes. Most of the time (when the lower byte of the counter is not null, there should be some character appear to the right of your cursor, just like how the "X" character appear to the right of your cursor when you have entered 91 bytes.
+
+* Whether you have verified or not, press {AC} {◄} {=}
+(I decide to wrap buttons in {curly brackets} to avoid special BBCode)
+
+Done.
+
+To test your understanding, try to enter this hackstring:
+[991ES+ and 570ES+ only]
+ 
+<52 characters> cv24 M 1 - F cv26 cv40 - Integrate econst 0 - tan^-1( D 0 - cs26 cv26 cs16 D 1 - cv12 = 0 - sin( 2 0 - 0 cv34 Integrate econst 0 - (-) cs32 0 - ⅃ Ans ^( cs32 0 - <2 remaining characters>
+Warning:
+* previously kaikun97 and SopaXorzTaker call hackstring = "whatever appear before character 'r' in glitched STAT mode". Now that should be "basic overflow hackstring".
