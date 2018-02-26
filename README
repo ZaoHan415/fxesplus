@@ -6,7 +6,7 @@ All copyrighted material included is for educational purposes only, and
  of its owners.
 
 Copyrighted material included:
-    dumps/*.bin - ROM extracted from the emulator
+    dumps/*.bin - ROM extracted from the actual calculator
     docs/nX-U8100 Core Instruction Manual.pdf - docin.com
     tools/u8-sdk/* - https://github.com/zoogtech/build-tools
 
