@@ -1,0 +1,50 @@
+Memory structure:
+| z = 94
+| d = 162
+| d1 = 163
+| e = 194
+[B1 ------ code ----------- | ----- data -----] (333)        [--- B2 ---] (356)     [--- B3 --- | --- data ---] (359)
+(z)                        (d) (d1)           (e)            (z)                               (d)
+
+============
+
+explanation | keypresses
+------------+------------
+wait        | A F 0 -
+------------+------------
+pop xr0     | cv24 M 1 -
+b1.e<-b3.d  | cv08 pi cv16 Ran#
+copy        | (-) cs23 0 -
+------------+------------
+pop xr0     | cv24 M 1 -
+b1.d<-b1.d1 | Permu pi Combi pi
+copy        | (-) cs23 0 -
+------------+------------
+pop xr0     | cv24 M 1 -
+b1.d,1 line | Permu pi mp -
+disp        | A 4 0 -
+------------+------------
+pop xr0     | cv24 M 1 -
+b1.e<-b1.z  | cv08 pi cs29 pi
+restore stk | (-) cs23 0 -
+------------+------------
+actual EP   |
+(#52 char)  |
+------------+------------
+pop er14    | Int / 0 -
+b2.z-2      | x10 Ans
+jump        | log / 0 -
+------------+------------
+data part   | <32 bytes>
+------------+------------
+logical EP  |
+------------+------------
+pop er0     | sin 2 0 -
+wait time   | 0 0
+
+
+Complete hackstring (with the example data):
+A F 0 - cv24 M 1 - cv08 pi cv16 Ran# (-) cs23 0 - cv24 M 1 - nPr pi nCr pi (-) cs23 0 - cv24 M 1 - nPr pi cs01 - A 4 0 -
+  cv24 M 1 - cv08 pi cs29 pi (-) cs23 0 - Integral( / 0 - x10 Ans log( / 0 -
+  cs14 C A e^( Sigma( / cs14 F X - E e^( cs14 tanh( / sinh( cs14 D E Rec( / cs14 B Y cs14 ^2 2 0 2 7 2 9
+  sin( 2 0 - cs05 cs05
